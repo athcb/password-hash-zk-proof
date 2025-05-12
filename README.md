@@ -1,6 +1,18 @@
-# Password Hash Proof
+# zk-SNARK Proof Implementation Guide
 
-Prove knowledge of a password that reasults in a given hash without revealing the password itself.
+The following is meant to serve as an example on how to generate and verify a zk-SNARK proof on- and off-chain.
+
+It includes all the needed steps in order to:
+- create the circom circuit (circom version 2.2.2)
+- use the Groth16 protocol and the bn128 elliptic curve for the trusted setup (Powers of Tau)
+- generate the proving and verification keys
+- generate the witness based on the given inputs
+- generate the proof 
+- verify the proof 
+
+# Zero-Knowledge Proof: Password Hash 
+
+Goal: Prove knowledge of a password that results in a given (public) hash without revealing the password itself.
 
 ## 1. Create the circuit in circom
 
