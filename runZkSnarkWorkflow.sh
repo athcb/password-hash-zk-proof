@@ -27,6 +27,9 @@ snarkjs zkey contribute build/password_0000.zkey build/password_final.zkey --nam
 echo "Exporting the verification key..."
 snarkjs zkey export verificationkey build/password_final.zkey build/verification_key.json
 
+echo "Exporting the Verifier.sol contract..."
+snarkjs zkey export solidityverifier build/password_final.zkey contracts/Verifier.sol
+
 echo "Creating the input.json file with example values that should generate a valid proof..."
 node inputs/generateInput.js
 
@@ -38,6 +41,9 @@ snarkjs wtns export json build/witness.wtns build/witness.json
 
 echo "Generating the proof..."
 snarkjs groth16 prove build/password_final.zkey build/witness.wtns build/proof.json build/public.json
+
+echo "Generating the Solidity calldata for on-chain verification (if needed)..."
+snarkjs zkesc build/public.json build/proof.json
 
 echo "Verifying the proof off-chain..."
 snarkjs groth16 verify build/verification_key.json build/public.json build/proof.json

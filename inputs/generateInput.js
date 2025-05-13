@@ -3,8 +3,8 @@ import { writeFileSync } from "fs";
 
 const poseidon = await buildPoseidon();
 
-const password = 12345n;
-const salt = 1n;
+const password = BigInt(12345);
+const salt = BigInt(1);
 const salted = password + salt;
 const hash = poseidon([salted]);
 const publicHash = poseidon.F.toString(hash);

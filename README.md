@@ -3,12 +3,15 @@
 The following is meant to serve as an example on how to generate and verify a zk-SNARK proof on- and off-chain.
 
 It includes all the needed steps in order to:
-- create the circom circuit (circom version 2.2.2)
+- create the circom circuit 
 - use the Groth16 protocol and the bn128 elliptic curve for the trusted setup (Powers of Tau)
 - generate the proving and verification keys
 - generate the witness based on the given inputs
 - generate the proof 
-- verify the proof 
+- verify the proof (on chain and off chain)
+
+
+Versions: circom 2.2.2, snarkjs 0.7.5
 
 # Zero-Knowledge Proof: Password Hash 
 
@@ -181,8 +184,8 @@ import { writeFileSync } from "fs";
 
 const poseidon = await buildPoseidon();
 
-const password = 12345n;
-const salt = 1n;
+const password = BigInt(12345);
+const salt = BigInt(1);
 const salted = password + salt;
 const hash = poseidon([salted]);
 const publicHash = poseidon.F.toString(hash);
@@ -275,7 +278,8 @@ console.log(result); // true or false
 To verify a proof on-chain we need to:
 1. Generate the Verifier.sol contract 
 2. Deploy the Verifier contract
-3. Interact with the Verifier contract
+3. Generate the calldata 
+4. Interact with the Verifier contract
 
 Hardhat or Foundry can be used for the contract deployment. This project uses Hardhat. 
 
@@ -290,7 +294,7 @@ snarkjs zkey export solidityverifier build/password_final.zkey contracts/Verifie
 
 ### 2. Deploy the Verifier contract
 
-To compile and deploy the verifier contract in Hardhat's local network (scripts/deployVerifier.js):
+To compile and deploy the verifier contract (scripts/deployVerifier.js):
 
 ```
 const { ethers } = require("hardhat");
@@ -314,10 +318,38 @@ main()
         process.exit(1);
     })
 ```
+### 3. Generate the calldata
 
-### 3. Interact with the Verifier contract
+To generate the calldata for the .verifyProof method in the Verifier contract:
 
-Interact with the verifier contract by using the proof.json and public.json data and calling the .verifyProof method from the deployed Verifier (scripts/verifyProof.js):
+```
+ snarkjs zkesc build/public.json build/proof.json
+```
+
+or within a js script:
+
+```
+const calldata = await snarkjs.groth16.exportSolidityCallData(proof, publicSignals);
+```
+where proof and publicSignals are the parsed data from proof.json and public.json.
+
+### 4. Interact with the Verifier contract
+
+Interact with the deployed verifier contract by passing the calldata within the .verifyProof method (scripts/verifyProof.js):
+
+```
+...
+const isValidProof = await verifier.verifyProof(
+        // point (x, y) on the elliptic curve
+        piA,
+        // two pairs of elliptic curve points
+        piB,
+        // point (x, y) on the elliptic curve
+        piC,
+        pubSignalsInput
+    );
+...
+```
 
 
 # Complete zk-SNARK Workflow
@@ -332,8 +364,7 @@ The whole workflow including
 - Proof verification (off-chain)
 can be run with the executable bash script runZkSnarkWorkflow.sh:
 
-```
-#!/bin/bash
+```#!/bin/bash
 
 echo "Compiling the circuit..."
 circom password.circom --r1cs --wasm --sym -o build
@@ -362,6 +393,9 @@ snarkjs zkey contribute build/password_0000.zkey build/password_final.zkey --nam
 echo "Exporting the verification key..."
 snarkjs zkey export verificationkey build/password_final.zkey build/verification_key.json
 
+echo "Exporting the Verifier.sol contract..."
+snarkjs zkey export solidityverifier build/password_final.zkey contracts/Verifier.sol
+
 echo "Creating the input.json file with example values that should generate a valid proof..."
 node inputs/generateInput.js
 
@@ -373,6 +407,9 @@ snarkjs wtns export json build/witness.wtns build/witness.json
 
 echo "Generating the proof..."
 snarkjs groth16 prove build/password_final.zkey build/witness.wtns build/proof.json build/public.json
+
+echo "Generating the Solidity calldata for on-chain verification (if needed)..."
+snarkjs zkesc build/public.json build/proof.json
 
 echo "Verifying the proof off-chain..."
 snarkjs groth16 verify build/verification_key.json build/public.json build/proof.json
