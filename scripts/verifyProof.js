@@ -12,10 +12,10 @@ async function main() {
 
     // address of deployed verifier contract
     const verifierAddress = process.env.VERIFIER_ADDRESS_SEPOLIA;
-    console.log("Verifier contract address: ", verifierAddress);
+    //console.log("Verifier contract address: ", verifierAddress);
 
     const verifier = await ethers.getContractAt("Groth16Verifier", verifierAddress);
-    console.log(await verifier.interface.fragments); 
+    //console.log(await verifier.interface.fragments); 
 
     // load the proof.json and public.json files (created from the witness)
     const proof = JSON.parse(fs.readFileSync("build/proof.json"));
@@ -23,15 +23,13 @@ async function main() {
 
     // export the calldata:
     const calldata = await snarkjs.groth16.exportSolidityCallData(proof, publicSignals);
-    console.log("calldata for verifyProof method: ", calldata);
     
     // parse the raw calldata:
     const argv = calldata
         .replace(/["[\]\s]/g, "")
         .split(',')
-        .map(x => x.trim());
-            
-    console.log("argv", argv);
+        .map(x => x.trim());      
+    //console.log("argv", argv);
     
     const piA = [argv[0], argv[1]];
     const piB = [
@@ -41,10 +39,12 @@ async function main() {
     const piC = [argv[6], argv[7]];
     const pubSignalsInput = argv.slice(8);
     
+    /*
     console.log("piA: ", piA);
     console.log("piB: ", piB);
     console.log("piC: ", piC);
     console.log("pubSignalsInput: ", pubSignalsInput)
+    */
 
     // call the verifyProof method:
     const isValidProof = await verifier.verifyProof(
@@ -57,7 +57,12 @@ async function main() {
         pubSignalsInput
     );
 
-    console.log("The proof is valid: ", isValidProof);
+    if(isValidProof) {
+        console.log("Proof accepted!")
+    } else {
+        console.log("Proof rejected!")
+    }
+  
 }
 
 main()
