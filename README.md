@@ -72,6 +72,11 @@ template PasswordHash {
 */
 component main {public [publicHash, salt]} = PasswordHash();
 ```
+To use the circomlib functions (in this case the Poseidon hash), add the library as a submodule within the repository:
+```bash
+git submodule add https://github.com/iden3/circomlib.git circomlib
+```
+            
 
 ## 2. Compile the circuit 
 The compilation converts the circom file to low-level components needed to generate and verify proofs:
@@ -81,12 +86,12 @@ The compilation converts the circom file to low-level components needed to gener
 - -o build: saves all outputs in the build folder
 
 
-```
+```bash
 circom password.circom --r1cs --wasm --sym -o build
 ```
 
 The compilation will produce a terminal output like the following: 
-```
+```bash
 template instances: 71
 non-linear constraints: 216
 linear constraints: 200
@@ -107,19 +112,19 @@ The Powers of Tau is a public cerenomy independent of the specific circuit.
 - it specifies the elliptic curve used "bn128" 
 - the maximum number of constraints 2**12
 - creates an output file with the initial powers of tau
-```
+```bash
 snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
 ```
 
 In order to make the Powers of Tau trusted, multiple people can contribute randomness so that no one person controls the setup: 
 - every time someone contributes entropy a new powers of tau file (.ptau) is created. 
 - the final .ptau file is the trusted setup for the specific circuit.
-```
+```bash
 snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="First contribution" -v
 ```
 
 For a second contribution of randomness:
-```
+```bash
 snarkjs powersoftau contribute pot12_0001.ptau pot12_0002.ptau --name="Second contribution" -v
 ```
 
@@ -129,7 +134,7 @@ and so on.
 In phase 2 of the Powers of Tau the final .ptau file is generated:
 - it takes the universal setup with the randomness contributions from phase 1 and transforms it based on the constraints of the r1cs file to make it suitable for Groth16 
 
-```
+```bash
 snarkjs powersoftau prepare phase2 pot12_0002.ptau pot12_final.ptau -v
 
 ```
@@ -139,20 +144,20 @@ snarkjs powersoftau prepare phase2 pot12_0002.ptau pot12_final.ptau -v
 Generate the circuit-specific proving key (zKey):
 - specify which is the final .ptau file from phase 2 that should be used (circuit specific trusted setup)
 - apply the powers of tau file to the r1cs contraints of the compiled circuit
-```
+```bash
 snarkjs groth16 setup build/password.r1cs pot12_final.ptau build/password_0000.zkey
 ```
 
 Secure the proving key with another round of randomness:
 - the final zKey can be used to generate proofs
-```
+```bash
 snarkjs zkey contribute build/password_0000.zkey build/password_final.zkey --name="Key Contributor"
 ```
 
 Export the verification key: 
 - the verification key can be used on-chain or off-chain to verify proofs
 - it does not contain "secrets" - only elliptic curve points and metadata
-```
+```bash
 snarkjs zkey export verificationkey build/password_final.zkey build/verification_key.json
 ```
 
@@ -165,7 +170,7 @@ In our case the signals consist of
 - the publicly known hash of the salted password
 - the public salt
 - the secret password 
-```
+```javascript
 {
   "publicHash": "6226004560057041027713920742662631397632345936432007178424370840963845204014",
   "salt": "1",
@@ -178,7 +183,7 @@ The input.json file is never shared (stays on the prover's side). Only public.js
 
 The input file was generated with inputs/generateInput.js:
 
-```
+```javascript
 import { buildPoseidon } from "circomlibjs";
 import { writeFileSync } from "fs";
 
@@ -208,12 +213,12 @@ Generate the witness with the wtns command
 - creates an output file .wtns which is then used to generate the proof
 - the witness is a complete solution to the circuit. It includes all private, public and intermediate values  from internal wires in the circuit
 - the witness has all the signal values that satisfy the constraints of the r1cs file
-```
+```bash
 snarkjs wtns calculate build/password_js/password.wasm inputs/input.json build/witness.wtns
 ```
 
 Transform the .wtns file into a .json file to inspect its contents: 
-```
+```bash
 snarkjs wtns export json build/witness.wtns build/witness.json
 ``` 
 The witness.json file produces output with the following fields:
@@ -241,7 +246,7 @@ Use the witness and the final .zkey (output of groth16 setup after all the contr
 - generates the public.json file: stores the public inputs
 - uses the groth16 prove command to create a proof that satisfies the circuits constraints
 
-```
+```bash
 snarkjs groth16 prove build/password_final.zkey build/witness.wtns build/proof.json build/public.json
 ```
 
@@ -251,18 +256,18 @@ Verify the proof using the verification key, the public inputs and the proof.
 - uses the groth16 verify command
 - outputs a console log message with the result of the verification (valid / invalid proof)
 
-```
+```bash
 snarkjs groth16 verify build/verification_key.json build/public.json build/proof.json
 ```
 If successfull: 
 
-```
+```bash
 [INFO]  snarkJS: OK!
 ```
 
 To verify the proof programmatically with snarkjs.verify(): 
 
-```
+```javascript
 const snarkjs = require("snarkjs");
 const vKey = require("./verification_key.json");
 const publicSignals = [...];
@@ -288,7 +293,7 @@ Hardhat or Foundry can be used for the contract deployment. This project uses Ha
 Use the final proving key (zKey) to generate the verifier contract:
 - after the verifier contract is deployed, its verifyProof(..) method can be called from other contracts
 
-```
+```bash
 snarkjs zkey export solidityverifier build/password_final.zkey contracts/Verifier.sol
 ```
 
@@ -296,7 +301,7 @@ snarkjs zkey export solidityverifier build/password_final.zkey contracts/Verifie
 
 To compile and deploy the verifier contract (scripts/deployVerifier.js):
 
-```
+```javascript
 const { ethers } = require("hardhat");
 
 async function main() {
@@ -322,13 +327,13 @@ main()
 
 To generate the calldata for the .verifyProof method in the Verifier contract:
 
-```
+```bash
  snarkjs zkesc build/public.json build/proof.json
 ```
 
 or within a js script:
 
-```
+```javascript
 const calldata = await snarkjs.groth16.exportSolidityCallData(proof, publicSignals);
 ```
 where proof and publicSignals are the parsed data from proof.json and public.json.
@@ -337,7 +342,7 @@ where proof and publicSignals are the parsed data from proof.json and public.jso
 
 Interact with the deployed verifier contract by passing the calldata within the .verifyProof method (scripts/verifyProof.js):
 
-```
+```javascript
 ...
 const isValidProof = await verifier.verifyProof(
         // point (x, y) on the elliptic curve
@@ -365,7 +370,7 @@ The whole workflow including
 8. Proof verification (off-chain & on-chain)
 can be run with the executable bash scripts 
 -  runZkSnarkWorkflow_1to4.sh:
-```
+```bash
 #!/bin/bash
 
 ./1_compileCircuit.sh
@@ -379,7 +384,7 @@ can be run with the executable bash scripts
 
 - runZkSnarkWorkflow_5to8.sh: 
 
-```
+```bash
 #!/bin/bash
 
 ./5_generateCircuitInputs.sh
@@ -398,7 +403,7 @@ To test new input values:
 2. execute runZkSnarkWorkflow_5to8.sh 
 
 If the proof is accepted both on chain and off-chain the scripts will output:
-```
+```bash
 --------------------------------
 Verifying the proof off-chain...
 --------------------------------
