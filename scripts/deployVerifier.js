@@ -1,3 +1,7 @@
+/**
+ * @title Verifier deployment
+ * @notice Deploys the "Groth16Verifier" from Verifier.sol
+ */
 const { ethers } = require("hardhat");
 
 async function main() {

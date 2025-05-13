@@ -1,21 +1,27 @@
+/**
+ * @title Proof verification script
+ * @notice Verifies a proof by interacting with the deployed verifier contract.
+ * @dev Calls the verifyProof method with the generated calldata
+ */
+
 const { ethers } = require("hardhat");
 const snarkjs = require("snarkjs");
 const fs = require("fs");
 
-
 async function main() {
 
+    // address of deployed verifier contract
     const verifierAddress = process.env.VERIFIER_ADDRESS_SEPOLIA;
-    //const verifierAddress = process.env.VERIFIER_ADDRESS_LOCALHOST;
     console.log("Verifier contract address: ", verifierAddress);
 
     const verifier = await ethers.getContractAt("Groth16Verifier", verifierAddress);
     console.log(await verifier.interface.fragments); 
 
+    // load the proof.json and public.json files (created from the witness)
     const proof = JSON.parse(fs.readFileSync("build/proof.json"));
     const publicSignals = JSON.parse(fs.readFileSync("build/public.json"));
 
-    // generate the calldata:
+    // export the calldata:
     const calldata = await snarkjs.groth16.exportSolidityCallData(proof, publicSignals);
     console.log("calldata for verifyProof method: ", calldata);
     
