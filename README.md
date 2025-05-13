@@ -1,6 +1,6 @@
 # zk-SNARK Proof Implementation Guide
 
-The following is meant to serve as an example on how to generate and verify a zk-SNARK proof on- and off-chain.
+The following is meant to serve as an example on how to generate and verify a zk-SNARK proof on- and off-chain using the Groth16 protocol.
 
 It includes all the needed steps in order to:
 - create the circom circuit 
