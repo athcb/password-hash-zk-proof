@@ -8,3 +8,7 @@ snarkjs zkey contribute build/password_0000.zkey build/password_final.zkey --nam
 
 echo "Exporting the verification key..."
 snarkjs zkey export verificationkey build/password_final.zkey build/verification_key.json
+
+echo "-----------------"
+echo "- Step 3...Done -"
+echo "-----------------"

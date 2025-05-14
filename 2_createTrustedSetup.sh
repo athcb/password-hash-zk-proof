@@ -14,3 +14,7 @@ snarkjs powersoftau contribute pot12_0001.ptau pot12_0002.ptau --name="Second co
 echo "Phase 2 of Groth16 trusted setup..."
 echo "Transforming the universal setup based on the constraints of our circuit..."
 snarkjs powersoftau prepare phase2 pot12_0002.ptau pot12_final.ptau -v
+
+echo "-----------------"
+echo "- Step 2...Done -"
+echo "-----------------"

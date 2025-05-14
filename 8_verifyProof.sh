@@ -9,3 +9,7 @@ echo "--------------------------------"
 echo "Verifying the proof on-chain..."
 echo "--------------------------------"
 npx hardhat run scripts/verifyProof.js --network sepolia
+
+echo "-----------------"
+echo "- Step 8...Done -"
+echo "-----------------"

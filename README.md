@@ -23,7 +23,7 @@ Formulate the input, output variables as well as the needed contraints for the p
 
 password.circom file:
 
-```
+```circom
 pragma circom 2.2.2;
 
 
